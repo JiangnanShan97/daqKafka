@@ -1,0 +1,25 @@
+{ global : 
+rtapi_info_description_hal_flag_stop;
+rtapi_info_address_hal_flag_stop;
+rtapi_info_type_hal_flag_stop;
+rtapi_info_description_hal_flag_start;
+rtapi_info_address_hal_flag_start;
+rtapi_info_type_hal_flag_start;
+rtapi_info_description_hal_sectionlength;
+rtapi_info_address_hal_sectionlength;
+rtapi_info_type_hal_sectionlength;
+rtapi_info_description_hal_startchannel;
+rtapi_info_address_hal_startchannel;
+rtapi_info_type_hal_startchannel;
+rtapi_info_description_hal_clockrate;
+rtapi_info_address_hal_clockrate;
+rtapi_info_type_hal_clockrate;
+rtapi_info_description_num_a_chans;
+rtapi_info_address_num_a_chans;
+rtapi_info_type_num_a_chans;
+rtapi_info_license;
+rtapi_info_description;
+rtapi_info_author;
+rtapi_app_exit;
+rtapi_app_main;
+local : * ; };

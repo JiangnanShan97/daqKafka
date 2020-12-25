@@ -1,0 +1,45 @@
+loadrt threads name1=servo-thread period1=100000000
+loadrt daq num_a_chans=6 hal_clockrate=10 hal_startchannel=0 hal_sectionlength=8 hal_flag_start=1 hal_flag_stop=0
+
+setp daq.scale-in.0 100
+setp daq.scale-in.1 100
+setp daq.scale-in.2 100
+setp daq.scale-in.3 100
+setp daq.scale-in.4 100
+setp daq.scale-in.5 100
+
+setp daq.type.0 0
+setp daq.type.1 0
+setp daq.type.2 0
+setp daq.type.3 0
+setp daq.type.4 0
+setp daq.type.5 0
+
+setp daq.gain-in.0 0
+setp daq.gain-in.1 0
+setp daq.gain-in.2 0
+setp daq.gain-in.3 0
+setp daq.gain-in.4 0
+setp daq.gain-in.5 0
+
+setp daq.channel.0 0
+setp daq.channel.1 1
+setp daq.channel.2 2
+setp daq.channel.3 3
+setp daq.channel.4 4
+setp daq.channel.5 5
+
+setp daq.read-mode.0 0
+setp daq.read-mode.1 0
+setp daq.read-mode.2 0
+setp daq.read-mode.3 0
+setp daq.read-mode.4 0
+setp daq.read-mode.5 0
+
+#addf read.analog-in.0 servo-thread
+#addf read.analog-in.1 servo-thread
+#addf read.analog-in.2 servo-thread
+
+addf read.analog-in.all servo-thread
+
+start
