@@ -52,16 +52,18 @@ $NoKeywords:  $
 // Configure the following parameters before running the demo
 //-----------------------------------------------------------------------------------
 
+#define STDERR stdout
 #define deviceDescription L"USB-4711A,BID#1"
+#define sectionCount 0
+#define sectionLength 8
 wchar_t const *profilePath = L"DemoDevice.xml";
-
 
 // user buffer size should be equal or greater than raw data buffer length, because data ready count
 // is equal or more than smallest section of raw data buffer and up to raw data buffer length.
 // users can set 'USER_BUFFER_SIZE' according to demand.
 static int USER_BUFFER_SIZE;
-int sectionLength=8;
-#define sectionCount 0
+
+
 
 /****  Kafka Producer Initialization  ****/
 static rd_kafka_t *rk;                          // kafka producer
@@ -150,20 +152,52 @@ int sendMessageToTopic()
     
     /* Create header*/
     time_t timer = time(NULL);
+    char* keyName = "time";
     char* curTime = ctime(&timer);
-    err = rd_kafka_header_add(hdrs, "time", sizeof("time"), &curTime, sizeof(curTime)); 
-    err = rd_kafka_producev(
-                rk,
-                RD_KAFKA_V_RKT(rkt),
-                RD_KAFKA_V_PARTITION(partition),  // automatic partitioning
-                RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
-                RD_KAFKA_V_VALUE(buf, len),
-                RD_KAFKA_V_HEADERS(hdrs),
-                RD_KAFKA_V_END);
+    
+	if(rd_kafka_header_add(hdrs, keyName, sizeof(keyName), &curTime, strlen(curTime))  
+			!= RD_KAFKA_RESP_ERR_NO_ERROR)	{
+		fprintf(stderr, "%% Add headers failed\n");
+		exit(1);
+	}
+    ///* Send/Produce message. */
+	if (hdrs) {
+		rd_kafka_headers_t* hdrs_copy;
+
+		hdrs_copy = rd_kafka_headers_copy(hdrs);
+
+		err = rd_kafka_producev(
+			rk,
+			RD_KAFKA_V_RKT(rkt),
+			RD_KAFKA_V_PARTITION(partition),	// automatic partitioning
+			RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
+			RD_KAFKA_V_VALUE(buf, len),
+			RD_KAFKA_V_HEADERS(hdrs_copy),
+			RD_KAFKA_V_END);
+
+		if (err)
+			rd_kafka_headers_destroy(hdrs_copy);
+		fprintf(stderr, "Sent at %s", curTime);
+	}
+	else {
+		if (rd_kafka_produce(
+			rkt, partition,
+			RD_KAFKA_MSG_F_COPY,
+			/* Payload and length */
+			buf, len,
+			/* Optional key and its length */
+			NULL, 0,
+			/* Message opaque, provided in
+			 * delivery report callback as
+			 * msg_opaque. */
+			NULL) == -1) {
+			err = rd_kafka_last_error();
+		}
+	}
                    
     if (err) {
         rd_kafka_headers_destroy(hdrs);
-        fprintf(stdin,
+        fprintf(STDERR,
             "%% Failed to produce to topic %s "
             "partition %i: %s\n",
             rd_kafka_topic_name(rkt), partition,
@@ -173,8 +207,13 @@ int sendMessageToTopic()
         rd_kafka_poll(rk, 0);
         return -1;
     }
-    rd_kafka_poll(rk, 0);
-    fprintf(stdin, "Message sent at %s", curTime);
+    
+    fprintf(stderr, "%% Sent %zd bytes to topic "
+			"%s partition %i\n",
+			len, rd_kafka_topic_name(rkt), partition);
+
+	/* Poll to handle delivery reports */
+	rd_kafka_poll(rk, 0);
     return 0;
 } 
 
@@ -187,8 +226,8 @@ void BDAQCALL OnDataReadyEvent (void *sender, BfdAiEventArgs *args, void *userPa
 	int32 getDataCount = 0;
 	WaveformAiCtrl * waveformAiCtrl = NULL;
 	waveformAiCtrl = (WaveformAiCtrl *) sender;
-	printf("sender: %p, ID: %d, count: %d, markcount: %d, offset: %d\n", sender, args->Id, args->Count, args->MarkCount, args->Offset);
-	printf("usr buff size: %d, args count: %d \n", USER_BUFFER_SIZE, args->Count);
+	// printf("sender: %p, ID: %d, count: %d, markcount: %d, offset: %d\n", sender, args->Id, args->Count, args->MarkCount, args->Offset);
+	// printf("usr buff size: %d, args count: %d \n", USER_BUFFER_SIZE, args->Count);
 	getDataCount = MinValue(USER_BUFFER_SIZE, args->Count);	// args->count: amount the of new data
 	WaveformAiCtrl_GetDataF64(waveformAiCtrl, getDataCount, Data, 0, NULL, NULL, NULL, NULL);
    
@@ -271,12 +310,12 @@ void BDAQCALL OnStoppedEvent (void * sender, BfdAiEventArgs * args, void *userPa
 static void msg_delivered(rd_kafka_t* rk,
     const rd_kafka_message_t* rkmessage, void* opaque) {
     if (rkmessage->err)
-        fprintf(stdin,
+        fprintf(STDERR,
             "%% Message delivery failed (broker %"PRId32"): %s\n",
             rd_kafka_message_broker_id(rkmessage),
             rd_kafka_err2str(rkmessage->err));
     else
-        fprintf(stdin,
+        fprintf(STDERR,
             "%% Message delivered (%zd bytes, offset %"PRId64", "
             "partition %"PRId32", broker %"PRId32"): %.*s\n",
             rkmessage->len, rkmessage->offset,
@@ -302,7 +341,7 @@ void usb_4711a_read_chan(void *arg, long period)
 		printf("Setting bootstrap server.\n");
         if (rd_kafka_conf_set(conf, "bootstrap.servers", brokers,
             errstr, sizeof(errstr)) != RD_KAFKA_CONF_OK) {
-            fprintf(stdin, "%s\n", errstr);
+            fprintf(STDERR, "%s\n", errstr);
             return;
         }
         rd_kafka_conf_set_dr_msg_cb(conf, msg_delivered);
@@ -311,7 +350,7 @@ void usb_4711a_read_chan(void *arg, long period)
 		printf("Creating handle.\n");
         if (!(rk = rd_kafka_new(RD_KAFKA_PRODUCER, conf,
             errstr, sizeof(errstr)))) {
-            fprintf(stdin,
+            fprintf(STDERR,
                 "%% Failed to create new producer: %s\n",
                 errstr);
             exit(1);
@@ -319,7 +358,7 @@ void usb_4711a_read_chan(void *arg, long period)
         /* Add brokers */
 		printf("Adding broker.\n");
         if (rd_kafka_brokers_add(rk, brokers) == 0) {
-            fprintf(stdin, "%% No valid brokers specified\n");
+            fprintf(STDERR, "%% No valid brokers specified\n");
             exit(1);
         }
         
@@ -436,7 +475,7 @@ void usb_4711a_read_chan(void *arg, long period)
         /* Destroy the handle */
         rd_kafka_destroy(rk);
         
-        fprintf(stdin, "Producer terminated successfully.\n");
+        fprintf(STDERR, "Producer terminated successfully.\n");
 
 		// If something wrong in this execution, print the error code on screen for tracking.
 		if (BioFailed(ret))

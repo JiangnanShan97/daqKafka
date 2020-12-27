@@ -1,5 +1,5 @@
 loadrt threads name1=servo-thread period1=100000000
-loadrt daq num_a_chans=6 hal_clockrate=10 hal_startchannel=0 hal_sectionlength=8 hal_flag_start=1 hal_flag_stop=0
+loadrt daq num_a_chans=6 hal_clockrate=10000 hal_startchannel=0 hal_sectionlength=8 hal_flag_start=1 hal_flag_stop=0
 
 setp daq.scale-in.0 100
 setp daq.scale-in.1 100
