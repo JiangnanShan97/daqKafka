@@ -1,6 +1,6 @@
 #!/bin/bash
 
-kafka_home=~/Desktop/daqKafka_v1.0/kafka_2.13-2.7.0
+kafka_home=/usr/local/lib/kafka_2.13-2.7.0
 
 case $1 in
 	start)
