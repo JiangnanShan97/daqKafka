@@ -4,7 +4,8 @@
 *				acquisition with external DAQ devices.	*
 *									*
 * Author: Hu Po								*
-* Last modified by: Shan Jiangnan					*
+* Last modified by: Shan Jiangnan
+* Last modified time: Dec. 27th 2020					*
 * License: GPL Version 2						*
 *									*
 * Copyright (c) 2018 All rights reserved.				*
